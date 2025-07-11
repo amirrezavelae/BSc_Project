@@ -1,7 +1,7 @@
 import argparse
 from itertools import count
 
-import gym
+import gymnasium as gym
 import scipy.optimize
 
 import torch
@@ -17,14 +17,12 @@ torch.utils.backcompat.broadcast_warning.enabled = True
 torch.utils.backcompat.keepdim_warning.enabled = True
 
 
-
-
-torch.set_default_tensor_type('torch.DoubleTensor')
+torch.set_default_dtype(torch.float32)
 
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
 parser.add_argument('--gamma', type=float, default=0.995, metavar='G',
                     help='discount factor (default: 0.995)')
-parser.add_argument('--env-name', default="Reacher-v4", metavar='G',
+parser.add_argument('--env-name', default="Hopper-v5", metavar='G',
                     help='name of the environment to run')
 parser.add_argument('--tau', type=float, default=0.97, metavar='G',
                     help='gae (default: 0.97)')
@@ -141,7 +139,7 @@ def update_params(batch):
         kl = log_std1 - log_std0 + \
             (std0.pow(2) + (mean0 - mean1).pow(2)) / (2.0 * std1.pow(2)) - 0.5
         return kl.sum(1, keepdim=True)
-    
+
     def get_js():
         # --- P = new policy, Q = old (detached) policy ---
         mean1, log_std1, std1 = policy_net(Variable(states))
@@ -150,8 +148,8 @@ def update_params(batch):
         std0 = Variable(std1.data)
 
         # --- form the “mixture” distribution M ~ N(mu_M, std_M) ---
-        meanM    = 0.5 * (mean1 + mean0)
-        stdM     = 0.5 * (std1   + std0)
+        meanM = 0.5 * (mean1 + mean0)
+        stdM = 0.5 * (std1 + std0)
         log_stdM = torch.log(stdM)
 
         # --- helper to compute KL(  N(mA, sA)  ||  N(mB, sB) ) ---
