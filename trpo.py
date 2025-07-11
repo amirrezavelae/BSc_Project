@@ -40,7 +40,8 @@ def linesearch(model,
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
-        print("a/e/r", actual_improve.item(), expected_improve.item(), ratio.item())
+        print("a/e/r", actual_improve.item(),
+              expected_improve.item(), ratio.item())
 
         if ratio.item() > accept_ratio and actual_improve.item() > 0:
             print("fval after", newfval.item())
@@ -48,13 +49,14 @@ def linesearch(model,
     return False, x
 
 
-def trpo_step(model, get_loss, get_kl, max_kl, damping):
+def trpo_step(model, get_loss, get_JS, max_kl, damping):
     loss = get_loss()
     grads = torch.autograd.grad(loss, model.parameters())
     loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
 
     def Fvp(v):
-        kl = get_kl()
+        # kl = get_kl()
+        kl = get_JS()
         kl = kl.mean()
 
         grads = torch.autograd.grad(kl, model.parameters(), create_graph=True)
@@ -62,11 +64,12 @@ def trpo_step(model, get_loss, get_kl, max_kl, damping):
 
         kl_v = (flat_grad_kl * Variable(v)).sum()
         grads = torch.autograd.grad(kl_v, model.parameters())
-        flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads]).data
+        flat_grad_grad_kl = torch.cat(
+            [grad.contiguous().view(-1) for grad in grads]).data
 
-        return flat_grad_grad_kl + v * damping
+        return flat_grad_grad_kl
 
-    stepdir = conjugate_gradients(Fvp, -loss_grad, 10)
+    stepdir = conjugate_gradients(Fvp, -loss_grad, 3)
 
     shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
 
